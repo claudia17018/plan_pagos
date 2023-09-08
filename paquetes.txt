@@ -1,0 +1,92 @@
+CREATE OR REPLACE PACKAGE APP.PKG_PLAN_DE_PAGOS IS  
+
+    FUNCTION FUN_ES_BISIESTO(p_anio IN NUMBER) RETURN BOOLEAN;
+
+    FUNCTION FUN_CALC_INTERES_MENSUAL(pc_interesAnual IN NUMBER) RETURN NUMBER;
+    
+    FUNCTION FUN_CAL_CUOTA(p_interesAnual IN NUMBER,p_capital IN NUMBER ,p_numCuotas IN NUMBER) RETURN NUMBER;
+    
+    FUNCTION FUN_CAL_INTERES_SIMPLE(p_capital IN NUMBER, p_tasaInteresAnual IN NUMBER, p_numDias IN NUMBER) RETURN NUMBER;
+    
+    PROCEDURE PRO_GENERAR_PLAN (   
+        p_id_prestamo IN NUMBER,
+        p_prestamo_total IN NUMBER,
+        p_num_cuotas IN NUMBER,
+        p_interes_anual IN NUMBER,
+        p_cuota IN NUMBER,
+        p_fecha_desembolso IN DATE);
+  
+END;
+/
+CREATE OR REPLACE PACKAGE BODY APP.PKG_PLAN_DE_PAGOS IS  
+
+    FUNCTION FUN_ES_BISIESTO(p_anio NUMBER) RETURN BOOLEAN IS
+    BEGIN
+        RETURN (MOD(p_anio, 4) = 0 AND MOD(p_anio, 100) != 0) OR (MOD(p_anio, 400) = 0);
+    END FUN_ES_BISIESTO;
+
+    FUNCTION FUN_CALC_INTERES_MENSUAL(pc_interesAnual IN NUMBER) RETURN NUMBER IS
+    v_int_mensual NUMBER := 0;
+    BEGIN        
+        v_int_mensual := pc_interesAnual / 12 / 100;
+        RETURN v_int_mensual;
+    END FUN_CALC_INTERES_MENSUAL;
+    
+    FUNCTION FUN_CAL_CUOTA(p_interesAnual IN NUMBER,p_capital  IN NUMBER ,p_numCuotas IN NUMBER ) RETURN NUMBER IS
+    
+    v_cuota NUMBER(10) := 0;
+    v_interes_mensual NUMBER:= 0;
+    
+    BEGIN
+    
+        v_interes_mensual := FUN_CALC_INTERES_MENSUAL(p_interesAnual);
+        v_cuota := (p_capital * v_interes_mensual * POWER(1 + v_interes_mensual, p_numCuotas)) / (POWER(1 + v_interes_mensual, p_numCuotas) - 1);
+
+        RETURN v_cuota;
+    
+    END FUN_CAL_CUOTA;
+
+    FUNCTION FUN_CAL_INTERES_SIMPLE(p_capital IN NUMBER, p_tasaInteresAnual IN NUMBER, p_numDias IN NUMBER) RETURN NUMBER IS
+    
+    BEGIN 
+    
+    null;
+    
+    END FUN_CAL_INTERES_SIMPLE;
+    
+    
+     PROCEDURE PRO_GENERAR_PLAN ( 
+        p_id_prestamo IN NUMBER,
+        p_prestamo_total IN NUMBER,
+        p_num_cuotas IN NUMBER,
+        p_interes_anual IN NUMBER,
+        p_cuota IN NUMBER,
+        p_fecha_desembolso IN DATE)
+     IS
+     
+        v_fecha_inicio date := TO_DATE(p_fecha_desembolso, 'DD/MM/YYYY');
+        v_fecha_fin date;
+        v_dias NUMBER(2):= 0 ;
+        v_interes NUMBER := 0;
+        v_capital NUMBER := 0;
+        v_saldo_capital NUMBER := 0;
+        v_saldo_anterior NUMBER := 0;
+        
+     BEGIN
+        FOR v_cuota IN 1..p_num_cuotas LOOP
+             v_fecha_fin := LAST_DAY(v_fecha_inicio);
+             v_dias := v_fecha_fin - v_fecha_inicio;
+             v_interes :=  0;
+             v_capital:= p_cuota - v_interes;
+
+             --INSERT INTO PLAN_PAGO_TEORICO 
+             --VALUES (SEQ_ID_CUOTA.NEXTVAL, v_fecha_inicio, v_fecha_fin,p_cuota, v_interes, v_capital,v_saldo_capital );
+             
+             v_fecha_inicio := ADD_MONTHS(v_fecha_inicio,1);
+        END LOOP;
+     
+     END PRO_GENERAR_PLAN;
+    
+END;
+/
+
